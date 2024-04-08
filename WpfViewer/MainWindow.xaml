@@ -1,0 +1,17 @@
+﻿<Window x:Class="WpfViewer.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WpfViewer"
+        xmlns:helix="http://helix-toolkit.org/wpf"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="1080" Width="1920">
+    <Grid>
+        <Button Content="Выбрать модель" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="120" Click="Button_Click"/>
+        <helix:HelixViewport3D x:Name="viewPort" ZoomExtentsWhenLoaded="True"  CameraRotationMode="Turntable"  Margin="10,45,10,10">
+            <helix:DefaultLights/>
+            <ModelVisual3D x:Name="model"/>
+        </helix:HelixViewport3D>
+    </Grid>
+</Window>
