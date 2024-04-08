@@ -11,6 +11,12 @@
   <ItemGroup>
     <PackageReference Include="HelixToolkit" Version="2.25.0" />
     <PackageReference Include="HelixToolkit.Wpf" Version="2.25.0" />
+    <PackageReference Include="Prism.Unity" Version="8.1.97" />
+    <PackageReference Include="Prism.Wpf" Version="8.1.97" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Models\" />
   </ItemGroup>
 
 </Project>

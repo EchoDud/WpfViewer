@@ -1,17 +1,23 @@
-﻿<Window x:Class="WpfViewer.MainWindow"
+﻿<Window x:Class="WpfViewer.MainView"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WpfViewer"
         xmlns:helix="http://helix-toolkit.org/wpf"
+        xmlns:vm="clr-namespace:WpfViewer.ViewModels"
         mc:Ignorable="d"
         Title="MainWindow" Height="1080" Width="1920">
+
+    <Window.DataContext>
+        <vm:MainViewModel/>
+    </Window.DataContext>
+
     <Grid>
-        <Button Content="Выбрать модель" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="120" Click="Button_Click"/>
+        <Button Content="Выбрать модель" Command="{Binding LoadModelCommand}" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="120"/>
         <helix:HelixViewport3D x:Name="viewPort" ZoomExtentsWhenLoaded="True"  CameraRotationMode="Turntable"  Margin="10,45,10,10">
             <helix:DefaultLights/>
-            <ModelVisual3D x:Name="model"/>
+            <ModelVisual3D Content="{Binding ModelContent}"/>
         </helix:HelixViewport3D>
     </Grid>
 </Window>
