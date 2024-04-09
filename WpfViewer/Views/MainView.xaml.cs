@@ -12,6 +12,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Media.Media3D;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using WpfViewer.ViewModels;
 
 namespace WpfViewer
 {
@@ -23,6 +24,7 @@ namespace WpfViewer
         public MainView()
         {
             InitializeComponent();
+            DataContext = new MainViewModel();
         }
                 
     }

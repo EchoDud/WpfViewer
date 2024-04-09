@@ -1,13 +1,11 @@
-﻿using HelixToolkit.Wpf;
-using Microsoft.Win32;
-using Prism.Commands;
+﻿using Prism.Commands;
 using Prism.Mvvm;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Input;
+using System.Collections.ObjectModel;
+using Microsoft.Win32;
+using System.IO;
+using System.Windows;
+using WpfViewer.Models;
+using HelixToolkit.Wpf;
 using System.Windows.Media.Media3D;
 using System.Windows.Media;
 
@@ -15,43 +13,133 @@ namespace WpfViewer.ViewModels
 {
     public class MainViewModel : BindableBase
     {
-        private Model3D _modelContent;
-        public Model3D ModelContent
+        private Repository _selectedProject;
+        private ModelItem _selectedModel;
+        private Model3D _currentModel3D;
+
+        public ObservableCollection<Repository> Projects { get; } = new ObservableCollection<Repository>();
+
+        public Repository SelectedProject
         {
-            get { return _modelContent; }
-            set { SetProperty(ref _modelContent, value); }
+            get => _selectedProject;
+            set => SetProperty(ref _selectedProject, value);
         }
 
-        public ICommand LoadModelCommand { get; }
+        public ModelItem SelectedModel
+        {
+            get => _selectedModel;
+            set
+            {
+                if (SetProperty(ref _selectedModel, value))
+                {
+                    LoadModel();
+                }
+            }
+        }
+        public Model3D CurrentModel3D
+        {
+            get => _currentModel3D;
+            set => SetProperty(ref _currentModel3D, value);
+        }
+
+        public DelegateCommand CreateRepositoryCommand { get; }
+        public DelegateCommand AddModelCommand { get; }
+        public DelegateCommand RemoveModelCommand { get; }
 
         public MainViewModel()
         {
-            LoadModelCommand = new DelegateCommand(OnLoadModel);
+            CreateRepositoryCommand = new DelegateCommand(CreateRepository);
+            AddModelCommand = new DelegateCommand(AddModel, CanAddModel).ObservesProperty(() => SelectedProject);
+            RemoveModelCommand = new DelegateCommand(RemoveModel, CanRemoveModel).ObservesProperty(() => SelectedModel);
         }
 
-        private void OnLoadModel()
+        private void CreateRepository()
         {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            if (openFileDialog.ShowDialog() == true)
+            var dialog = new SaveFileDialog
             {
-                ModelContent = Display3d(openFileDialog.FileName);
+                Title = "Создате репозиторий",
+                FileName = "Новая папка",               
+                CheckFileExists = false,
+                CheckPathExists = false,
+                ValidateNames = false
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                var path = Path.GetFullPath(dialog.FileName);
+
+                // Возможно, нужна дополнительная проверка здесь, чтобы убедиться, что path является допустимым
+                if (!string.IsNullOrWhiteSpace(path))
+                {
+                    TryCreateRepositoryAt(path);
+                }
             }
         }
 
-        private Model3D Display3d(string modelPath)
+
+        private void TryCreateRepositoryAt(string path)
         {
-            Model3D device = null;
-            try
+            // Проверяем, существует ли директория
+            if (Directory.Exists(path))
             {
-                ModelImporter import = new ModelImporter();
-                import.DefaultMaterial = new DiffuseMaterial(new SolidColorBrush(Colors.LightGray));
-                device = import.Load(modelPath);
+                MessageBox.Show("Repository already exists.");
             }
-            catch (Exception e)
+            else
             {
-                System.Windows.MessageBox.Show("Exception Error : " + e.StackTrace);
+                // Если директория не существует, создаем ее и репозиторий
+                var newRepository = new Repository { Name = Path.GetFileName(path), Path = path };
+                Projects.Add(newRepository);
             }
-            return device;
+        }
+
+        private void AddModel()
+        {
+            var dialog = new OpenFileDialog
+            {
+                Filter = "3D Model Files|*.obj;*.stl;*.3ds", // Adjust the filter based on your application's needs
+                Title = "Select a 3D model file"
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                var modelItem = new ModelItem { Name = Path.GetFileName(dialog.FileName), Path = dialog.FileName };
+                SelectedProject?.Models.Add(modelItem);
+            }
+        }
+
+        private bool CanAddModel() => SelectedProject != null;
+
+        private void RemoveModel()
+        {
+            if (SelectedModel != null)
+            {
+                SelectedProject?.Models.Remove(SelectedModel);
+                SelectedModel = null; // Clear the selection
+            }
+        }
+
+        private bool CanRemoveModel() => SelectedModel != null;
+
+        private void LoadModel()
+        {
+            if (SelectedModel != null && File.Exists(SelectedModel.Path))
+            {
+                try
+                {
+                    var modelImporter = new ModelImporter();
+                    modelImporter.DefaultMaterial = new DiffuseMaterial(new SolidColorBrush(Colors.LightGray));
+                    CurrentModel3D = modelImporter.Load(SelectedModel.Path);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Failed to load model: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    CurrentModel3D = null;
+                }
+            }
+            else
+            {
+                CurrentModel3D = null;
+            }
         }
     }
 }
