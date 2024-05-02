@@ -1,4 +1,6 @@
-﻿using System;
+﻿using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Bson;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -7,11 +9,9 @@ using System.Threading.Tasks;
 
 namespace WpfViewer.Models
 {
-    public class Repository
+    public class Project
     {
         public string Name { get; set; }
-        public string Path { get; set; }
-        public ObservableCollection<ModelItem> Models { get; set; } = new ObservableCollection<ModelItem>();
+        public ObservableCollection<Model> Models { get; set; } = new ObservableCollection<Model>();
     }
-
 }

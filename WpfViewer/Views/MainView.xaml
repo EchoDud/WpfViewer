@@ -6,22 +6,25 @@
         xmlns:prism="http://prismlibrary.com/"
         xmlns:helix="http://helix-toolkit.org/wpf"
         mc:Ignorable="d"
-        Title="Model Version Control" Height="600" Width="800">
+        Title="Model Version Control" Height="600" Width="800"
+        prism:ViewModelLocator.AutoWireViewModel="True">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="200"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
         <StackPanel Grid.Column="0" Background="LightGray">
-            <Button Content="Create Repository" Command="{Binding CreateRepositoryCommand}" Margin="10" />
+            <Button Content="Create Project" Command="{Binding CreateProjectCommand}" Margin="10" />
+            <Button Content="Delete Project" Command="{Binding DeleteProjectCommand}" Margin="10" />
             <ListView ItemsSource="{Binding Projects}" DisplayMemberPath="Name" SelectedItem="{Binding SelectedProject}" Margin="10"/>
             <Button Content="Add Model" Command="{Binding AddModelCommand}" Margin="10"/>
             <Button Content="Remove Model" Command="{Binding RemoveModelCommand}" Margin="10"/>
+            <Button Content="Update Model" Command="{Binding UpdateModelCommand}" Margin="10"/>
             <TextBlock Text="Models" Margin="10,20,10,0"/>
             <ListView ItemsSource="{Binding SelectedProject.Models}" DisplayMemberPath="Name" SelectedItem="{Binding SelectedModel}" Margin="10"/>
         </StackPanel>
         <helix:HelixViewport3D Grid.Column="1">
-            <helix:DefaultLights/>            
+            <helix:DefaultLights/>
             <ModelVisual3D Content="{Binding CurrentModel3D}"/>
         </helix:HelixViewport3D>
     </Grid>

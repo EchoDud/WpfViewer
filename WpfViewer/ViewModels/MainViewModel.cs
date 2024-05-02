@@ -8,137 +8,136 @@ using WpfViewer.Models;
 using HelixToolkit.Wpf;
 using System.Windows.Media.Media3D;
 using System.Windows.Media;
+using System.Windows.Input;
+using FileVersionControl.Core.DTOs.FileStorageDTOs;
+using FileVersionControl.Core.Services;
+using MongoDB.Bson;
 
 namespace WpfViewer.ViewModels
 {
     public class MainViewModel : BindableBase
     {
-        private Repository _selectedProject;
-        private ModelItem _selectedModel;
-        private Model3D _currentModel3D;
+        private readonly FileService _fileService;
+        private Project _selectedProject;
+        private Model _selectedModel;
+        private ObservableCollection<Project> _projects = new ObservableCollection<Project>();
 
-        public ObservableCollection<Repository> Projects { get; } = new ObservableCollection<Repository>();
-
-        public Repository SelectedProject
+        public MainViewModel(FileService fileService)
         {
-            get => _selectedProject;
-            set => SetProperty(ref _selectedProject, value);
+            _fileService = fileService;
+            CreateProjectCommand = new DelegateCommand(CreateProject);
+            DeleteProjectCommand = new DelegateCommand(DeleteProject, () => SelectedProject != null).ObservesProperty(() => SelectedProject);
+            AddModelCommand = new DelegateCommand(AddModel, () => SelectedProject != null).ObservesProperty(() => SelectedProject);
+            RemoveModelCommand = new DelegateCommand(RemoveModel, () => SelectedModel != null).ObservesProperty(() => SelectedModel);
+            UpdateModelCommand = new DelegateCommand(UpdateModel, () => SelectedModel != null).ObservesProperty(() => SelectedModel);
         }
 
-        public ModelItem SelectedModel
+        public ICommand CreateProjectCommand { get; }
+        public ICommand DeleteProjectCommand { get; }
+        public ICommand AddModelCommand { get; }
+        public ICommand RemoveModelCommand { get; }
+        public ICommand UpdateModelCommand { get; }
+
+        public ObservableCollection<Project> Projects
         {
-            get => _selectedModel;
-            set
+            get { return _projects; }
+            set { SetProperty(ref _projects, value); }
+        }
+
+        public Project SelectedProject
+        {
+            get { return _selectedProject; }
+            set { SetProperty(ref _selectedProject, value); }
+        }
+
+        public Model SelectedModel
+        {
+            get { return _selectedModel; }
+            set { SetProperty(ref _selectedModel, value); }
+        }
+
+        private void CreateProject()
+        {
+            var projectName = Microsoft.VisualBasic.Interaction.InputBox("Enter new project name:", "New Project", "Default Project");
+            if (!string.IsNullOrWhiteSpace(projectName))
+                Projects.Add(new Project { Name = projectName });
+        }
+
+        private void DeleteProject()
+        {
+            if (SelectedProject != null)
+                Projects.Remove(SelectedProject);
+        }
+
+        private async void AddModel()
+        {
+            var openFileDialog = new OpenFileDialog { Filter = "Model Files|*.stl" };
+            if (openFileDialog.ShowDialog() == true)
             {
-                if (SetProperty(ref _selectedModel, value))
+                using (var stream = File.OpenRead(openFileDialog.FileName))
                 {
-                    LoadModel();
+                    var uploadFileDTO = new UploadFileDTO
+                    {
+                        Name = Path.GetFileName(openFileDialog.FileName),
+                        Type = "model",
+                        Owner = "User", // Update this as per your user management system
+                        Project = SelectedProject.Name,
+                        Description = "Added via application",
+                        Stream = stream
+                    };
+                    var objectId = await _fileService.UploadFileAsync(uploadFileDTO);
+                    SelectedProject.Models.Add(new Model
+                    {
+                        Name = Path.GetFileName(openFileDialog.FileName),
+                        FileType = "model",
+                        Owner = "User",
+                        Project = SelectedProject.Name,
+                        VersionNumber = 1, // This should ideally be fetched from the service after upload
+                        Description = "Added via application"
+                    });
                 }
             }
         }
-        public Model3D CurrentModel3D
-        {
-            get => _currentModel3D;
-            set => SetProperty(ref _currentModel3D, value);
-        }
 
-        public DelegateCommand CreateRepositoryCommand { get; }
-        public DelegateCommand AddModelCommand { get; }
-        public DelegateCommand RemoveModelCommand { get; }
-
-        public MainViewModel()
-        {
-            CreateRepositoryCommand = new DelegateCommand(CreateRepository);
-            AddModelCommand = new DelegateCommand(AddModel, CanAddModel).ObservesProperty(() => SelectedProject);
-            RemoveModelCommand = new DelegateCommand(RemoveModel, CanRemoveModel).ObservesProperty(() => SelectedModel);
-        }
-
-        private void CreateRepository()
-        {
-            var dialog = new SaveFileDialog
-            {
-                Title = "Создате репозиторий",
-                FileName = "Новая папка",               
-                CheckFileExists = false,
-                CheckPathExists = false,
-                ValidateNames = false
-            };
-
-            if (dialog.ShowDialog() == true)
-            {
-                var path = Path.GetFullPath(dialog.FileName);
-
-                // Возможно, нужна дополнительная проверка здесь, чтобы убедиться, что path является допустимым
-                if (!string.IsNullOrWhiteSpace(path))
-                {
-                    TryCreateRepositoryAt(path);
-                }
-            }
-        }
-
-
-        private void TryCreateRepositoryAt(string path)
-        {
-            // Проверяем, существует ли директория
-            if (Directory.Exists(path))
-            {
-                MessageBox.Show("Repository already exists.");
-            }
-            else
-            {
-                // Если директория не существует, создаем ее и репозиторий
-                var newRepository = new Repository { Name = Path.GetFileName(path), Path = path };
-                Projects.Add(newRepository);
-            }
-        }
-
-        private void AddModel()
-        {
-            var dialog = new OpenFileDialog
-            {
-                Filter = "3D Model Files|*.obj;*.stl;*.3ds", // Adjust the filter based on your application's needs
-                Title = "Select a 3D model file"
-            };
-
-            if (dialog.ShowDialog() == true)
-            {
-                var modelItem = new ModelItem { Name = Path.GetFileName(dialog.FileName), Path = dialog.FileName };
-                SelectedProject?.Models.Add(modelItem);
-            }
-        }
-
-        private bool CanAddModel() => SelectedProject != null;
-
-        private void RemoveModel()
+        private async void RemoveModel()
         {
             if (SelectedModel != null)
             {
-                SelectedProject?.Models.Remove(SelectedModel);
-                SelectedModel = null; // Clear the selection
+                var deleteFileDTO = new DeleteFileDTO
+                {
+                    Name = SelectedModel.Name,
+                    Owner = SelectedModel.Owner,
+                    Project = SelectedModel.Project
+                };
+                await _fileService.DeleteFileAsync(deleteFileDTO);
+                SelectedProject.Models.Remove(SelectedModel);
             }
         }
 
-        private bool CanRemoveModel() => SelectedModel != null;
-
-        private void LoadModel()
+        private async void UpdateModel()
         {
-            if (SelectedModel != null && File.Exists(SelectedModel.Path))
+            var openFileDialog = new OpenFileDialog { Filter = "Model Files|*.stl" };
+            if (openFileDialog.ShowDialog() == true)
             {
-                try
+                using (var stream = File.OpenRead(openFileDialog.FileName))
                 {
-                    var modelImporter = new ModelImporter();
-                    modelImporter.DefaultMaterial = new DiffuseMaterial(new SolidColorBrush(Colors.LightGray));
-                    CurrentModel3D = modelImporter.Load(SelectedModel.Path);
+                    var uploadFileDTO = new UploadFileDTO
+                    {
+                        Name = Path.GetFileName(openFileDialog.FileName),
+                        Type = "model",
+                        Owner = "User",
+                        Project = SelectedProject.Name,
+                        Description = "Updated via application",
+                        Stream = stream
+                    };
+                    var objectId = await _fileService.UploadFileAsync(uploadFileDTO);
+                    SelectedModel.Name = Path.GetFileName(openFileDialog.FileName);
+                    SelectedModel.FileType = "model";
+                    SelectedModel.Owner = "User";
+                    SelectedModel.Project = SelectedProject.Name;
+                    SelectedModel.VersionNumber = 1; // This should be updated to the new version
+                    SelectedModel.Description = "Updated via application";
                 }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Failed to load model: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    CurrentModel3D = null;
-                }
-            }
-            else
-            {
-                CurrentModel3D = null;
             }
         }
     }

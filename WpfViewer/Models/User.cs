@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace WpfViewer.Models
 {
-    public class ModelItem
+    public class User
     {
-        public string Name { get; set; }
-        public string Path { get; set; }
+        public string Username { get; set; }
+        public List<Project> Projects { get; set; } = new List<Project>();
     }
 }

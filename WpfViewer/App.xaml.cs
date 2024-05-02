@@ -3,6 +3,8 @@ using Prism.Unity;
 using System.Configuration;
 using System.Data;
 using System.Windows;
+using WpfViewer.Services;
+using WpfViewer.ViewModels;
 
 namespace WpfViewer
 {
@@ -13,13 +15,16 @@ namespace WpfViewer
     {
         protected override Window CreateShell()
         {
-            // Создание и возвращение главного окна вашего приложения
             return Container.Resolve<MainView>();
         }
 
         protected override void RegisterTypes(IContainerRegistry containerRegistry)
         {
-            // Регистрация зависимостей
+            // Register the ModelService with the interface IModelService
+            containerRegistry.RegisterSingleton<IModelService, ModelService>();
+
+            // Optionally, ensure MainViewModel is also registered if not done automatically
+            containerRegistry.Register<MainViewModel>();
         }
     }
 
